@@ -109,6 +109,27 @@ module.exports.offerGet = async (req, res) => {
   }
 }
 
+// search products route
+module.exports.searchProductsGet = async (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ error: "Search query is required" });
+    }
+
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } }
+      ]
+    });
+
+    res.status(200).json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
 
 // POST ROUTES
 
@@ -118,7 +139,7 @@ module.exports.addProductsPost = [
     upload.array("images", 10)(req, res, (err) => {
       if (err) {
         console.error("Multer Error:", err.message);
-        return res.status(400).json({ error: "File upload failed. " + err.message });
+        return res.status(400).json({ error: err.message });
       }
       next();
     });
@@ -191,7 +212,7 @@ module.exports.editOfferPatch = async (req, res) => {
       res.status(404).json({ error: 'the offer was not found' })
     } else {
       const { offerTitle, discountPercentage, startDate, endDate } = req.body
-      const updatedOffer = await Offer.findByIdAndUpdate(item._id,{ $set: { title: offerTitle, discountPercentage, startDate, endDate } },{ new: true } )
+      const updatedOffer = await Offer.findByIdAndUpdate(item._id, { $set: { title: offerTitle, discountPercentage, startDate, endDate } }, { new: true })
       const item1 = await Offer.findById(req.params.id)
       res.status(200).json(updatedOffer)
     }
@@ -199,8 +220,27 @@ module.exports.editOfferPatch = async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 }
-module.exports.editProductPatch = (req, res) => {
-  res.send('edit offer')
+module.exports.editProductPatch = async (req, res) => {
+  try {
+    const item = await Product.findById(req.params.id)
+    if (!item || item === null) {
+      res.status(404).json({ error: 'the product was not found' })
+    } else {
+      const { offers, name, description, price, category, quantity, isFeatured } = req.body
+      const updatedProduct = await Product.findByIdAndUpdate(item._id, { $set: { name, description, price, category, quantity, isFeatured, offers } }, { new: true })
+      if (offers) {
+        const currentOffer = await Offer.findById(offers)
+        if (currentOffer && !currentOffer.applicableProducts.includes(item._id)) {
+          currentOffer.applicableProducts.push(item._id)
+          await currentOffer.save()
+        }
+      }
+      console.log(updatedProduct)
+      res.status(200).json({ message: 'product updated succesfully' })
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 }
 // DELETEROUTES
 module.exports.deleteProductDelete = async (req, res) => {

@@ -14,7 +14,7 @@ const ProductSchema = new mongoose.Schema(
         public_id: { type: String, required: true },
       },
     ], 
-    offers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Offer" }],
+    offers: { type: mongoose.Schema.Types.ObjectId, ref: "Offer" },
     isFeatured: { type: Boolean, default: false }
   },
   { timestamps: true }

@@ -74,7 +74,7 @@ module.exports.loginPost = [
         })
         if (user) res.status(200).json(user)
     } catch (err) {
-        res.status(401).json({ message: err.message })
+        res.status(401).json({ error: err.message })
     }
 }]
 
@@ -89,7 +89,7 @@ module.exports.registerPost = [
         return res.status(400).json({ errors: errors.array() })
     }
     const { username, password, email, phone} = req.body
-    if(!username || !password ||!email || !phone)return res.status(400).json({message: "please enter all the details!"})
+    if(!username || !password ||!email || !phone)return res.status(400).json({error: "please enter all the details!"})
     const newUser = new userModel({
         username,
         password,
@@ -100,10 +100,10 @@ module.exports.registerPost = [
         const userExists = await userModel.findOne({ username })
         const emailExists = await userModel.findOne({ email })
         if (userExists !== null) {
-            return res.status(409).json({ message: 'the username is already taken!' })
+            return res.status(409).json({ error: 'the username is already taken!' })
         }
         if (emailExists !== null) {
-            return res.status(409).json({ message: 'the email is already registered!' })
+            return res.status(409).json({ error: 'the email is already registered!' })
         }
         const user = await newUser.save()
         let token = createtoken(user._id, user.username, user.isAdmin)
@@ -116,7 +116,7 @@ module.exports.registerPost = [
         })
         if (user) res.status(201).json(user)
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        res.status(500).json({ error: error.message })
     }
 
 }]
