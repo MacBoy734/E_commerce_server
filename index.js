@@ -12,7 +12,7 @@ mongoose.connect(process.env.MONGO_DB_URI).then(() => console.log('connected to 
 app.use(cookieParser())
 const  origin = () => {
     if(process.env.IS_PRODUCTION == 'false') return 'http://localhost:3000'
-    return  'https://macboy.netlify.app' 
+    return  'https://macboystore.netlify.app' 
 }
 app.use(cors({
     origin: origin(),
