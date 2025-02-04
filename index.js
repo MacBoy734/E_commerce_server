@@ -6,7 +6,7 @@ require('dotenv').config()
 
 const app = express()
 const events = require('events');
-events.EventEmitter.defaultMaxListeners = 20; // Set to a higher number
+events.EventEmitter.defaultMaxListeners = 20; 
 
 mongoose.connect(process.env.MONGO_DB_URI).then(() => console.log('connected to database...')).catch(error => console.error(error.message))
 app.use(cookieParser())

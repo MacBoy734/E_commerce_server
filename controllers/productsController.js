@@ -4,6 +4,8 @@ const { v2: cloudinary } = require("cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const Product = require("../models/productModel");
 const Offer = require("../models/offersModel");
+const User = require('../models/userModel')
+const Order = require('../models/orderModel')
 
 // Configure Cloudinary
 cloudinary.config({
@@ -130,6 +132,17 @@ module.exports.searchProductsGet = async (req, res) => {
   }
 }
 
+//get all orders
+
+module.exports.allOrdersGet = async(req, res) => {
+  try{
+    const allOrders = await Order.find()
+    res.status(200).json(allOrders)
+  }catch(err){
+    res.status(500).json({error: err.message})
+  }
+}
+
 
 // POST ROUTES
 
@@ -148,7 +161,7 @@ module.exports.addProductsPost = [
     try {
       const { name, description, price, quantity, category } = req.body;
 
-      // Validate inputs
+      
       if (!name || !description || !price || !req.files || req.files.length === 0 || !quantity || !category) {
         return res.status(400).json({ error: "All fields are required, including images." });
       }
@@ -204,6 +217,60 @@ module.exports.addOfferPost = async (req, res) => {
   }
 }
 
+// checkout route
+
+module.exports.checkOutPost = async(req, res) => {
+  const { userId, items, address, postalCode, city, email, paymentMethod } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    
+    let totalAmount = 0;
+    let orderItems = [];
+
+    for (let item of items) {
+      const product = await Product.findById(item.id);
+      if (!product) {
+        return res.status(404).json({ error: `Product with ID ${item.id} not found` });
+      }
+
+      // Calculate price and update stock
+      totalAmount += product.price * item.quantity;
+      orderItems.push({
+        product: product._id,
+        quantity: item.quantity,
+        price: product.price
+      });
+
+      // Update stock (reduce by quantity)
+      product.quantity -= item.quantity;
+      await product.save();
+    }
+
+    // Create new order
+    const order = new Order({
+      user: user._id,
+      items: orderItems,
+      totalAmount,
+      shippingAddress: address,
+      paymentMethod,
+      email,
+      postalCode,
+      city,
+      paymentStatus: 'Pending',
+      orderStatus: 'Pending'
+    });
+
+    await order.save();
+    res.status(201).json(order);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // PATCH/PUT ROUTES
 module.exports.editOfferPatch = async (req, res) => {
   try {
@@ -235,7 +302,6 @@ module.exports.editProductPatch = async (req, res) => {
           await currentOffer.save()
         }
       }
-      console.log(updatedProduct)
       res.status(200).json({ message: 'product updated succesfully' })
     }
   } catch (err) {
