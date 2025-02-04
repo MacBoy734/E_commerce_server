@@ -2,10 +2,38 @@ const mongoose = require('mongoose')
 const multer = require("multer");
 const { v2: cloudinary } = require("cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const nodemailer = require('nodemailer')
 const Product = require("../models/productModel");
 const Offer = require("../models/offersModel");
 const User = require('../models/userModel')
-const Order = require('../models/orderModel')
+const Order = require('../models/orderModel');
+const productModel = require('../models/productModel');
+
+
+// function to send Email after placing an order
+const sendEmail = async (to, subject, message) => {
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+
+  const mailOptions = {
+    from: `"Mac Boy" <${process.env.EMAIL_USERNAME}>`,
+    to,
+    subject,
+    html: message,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
 
 // Configure Cloudinary
 cloudinary.config({
@@ -134,12 +162,12 @@ module.exports.searchProductsGet = async (req, res) => {
 
 //get all orders
 
-module.exports.allOrdersGet = async(req, res) => {
-  try{
+module.exports.allOrdersGet = async (req, res) => {
+  try {
     const allOrders = await Order.find()
     res.status(200).json(allOrders)
-  }catch(err){
-    res.status(500).json({error: err.message})
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 }
 
@@ -161,7 +189,7 @@ module.exports.addProductsPost = [
     try {
       const { name, description, price, quantity, category } = req.body;
 
-      
+
       if (!name || !description || !price || !req.files || req.files.length === 0 || !quantity || !category) {
         return res.status(400).json({ error: "All fields are required, including images." });
       }
@@ -219,7 +247,7 @@ module.exports.addOfferPost = async (req, res) => {
 
 // checkout route
 
-module.exports.checkOutPost = async(req, res) => {
+module.exports.checkOutPost = async (req, res) => {
   const { userId, items, address, postalCode, city, email, paymentMethod } = req.body;
   try {
     const user = await User.findById(userId);
@@ -227,7 +255,7 @@ module.exports.checkOutPost = async(req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    
+
     let totalAmount = 0;
     let orderItems = [];
 
@@ -265,6 +293,32 @@ module.exports.checkOutPost = async(req, res) => {
     });
 
     await order.save();
+    // Email to user
+    const userMessage = `
+    <h2>Order Confirmation</h2>
+    <p>Thank you for placing your order, ${user.username}!</p>
+    <h3 style="color: #333;">Order Details</h3>
+    <p>Your order ID: ${order._id}</p>
+    <p>Total: $${order.totalAmount}</p>
+    <p>Date: ${new Date(order.createdAt).toLocaleString()}</p>
+    <p>Payment method: ${order.paymentMethod}</p>
+    <p>shipping address: ${order.shippingAddress}</p>
+    <p>city of delivery: ${order.city}</p>
+    <p>We will notify you when it's shipped.</p>
+  `;
+    await sendEmail(user.email, "Order Confirmation", userMessage);
+
+    // Email to admin
+    const adminMessage = `
+    <h2>New Order Received</h2>
+    <p>User: ${user.username} (${email})</p>
+    <p>Order ID: ${order._id}</p>
+    <p>Total: $${order.totalAmount}</p>
+    <p>city of delivery: ${order.city}</p>
+    <p>Payment method: ${order.paymentMethod}</p>
+    <p>Check the admin panel for more details.</p>
+  `;
+    await sendEmail(process.env.ADMIN_EMAIL, "New Order Received", adminMessage)
     res.status(201).json(order);
   } catch (err) {
     res.status(500).json({ error: err.message });
