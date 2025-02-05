@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken')
 const userModel = require('../models/userModel')
-const bcrypt = require('bcryptjs')
+const nodemailer = require('nodemailer')
 const { body, validationResult } = require('express-validator')
 
 
@@ -120,3 +120,88 @@ module.exports.registerPost = [
     }
 
 }]
+
+module.exports.forgotPasswordPost = async(req, res) => {
+    const email = req.body.email
+    try {
+        const user = await userModel.findOne({ email })
+        if (!user) return res.status(404).json({ error: 'this email is not registered!' })
+        const token = jwt.sign({ id: user._id }, process.env.JWT_COOKIE_SECRET, { expiresIn: '10m' })
+        const resetUrl = `https://macboystore.netlify.app/resetpassword?token=${token}`
+        const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        })
+
+        const mailOptions = {
+            from: `"Mac Boy" <${process.env.EMAIL_USERNAME}>`,
+            to: email,
+            subject: `Password Reset`,
+            html: `
+            <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
+                <h2 style="color: #0275d8; text-align: center;">Reset Your Password</h2>
+                <p>Hello,</p>
+                <p>Hey am so sorry that you lost your password. Click the button below to reset your password. <strong>This link will expire in 10 minutes.</strong></p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="${resetUrl}" style="background-color: #0275d8; color: #fff; padding: 10px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">
+                        Reset Password
+                    </a>
+                </div>
+                <p>If the button above doesn’t work, you can also click the link below:</p>
+                <p style="word-break: break-word; color: #0275d8;">
+                    <a href="${resetUrl}" style="color: #0275d8; text-decoration: none;">${resetUrl}</a>
+                </p>
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="font-size: 0.9rem; color: #666;">
+                    If you did not request a password reset, you can safely ignore this email.
+                </p>
+                <br>
+                <small>This is an automated response! Please don't reply to this email.</small>
+                <br>
+                <p style="font-size: 0.9rem; color: #666;">Thank you,<br>The Mac Boy Team</p>
+            </div>
+        `
+
+        }
+
+        // Send the confirmation email
+        transporter.sendMail(mailOptions, (error, Info) => {
+            if (error) {
+                console.log(error.message)
+                res.status(500).json({ error: 'There was an error sending the reset token' })
+            } else {
+                res.status(200).send({ message: "link succesfully sent!" })
+            }
+        })
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+module.exports.resetPasswordPost = async (req, res) => {
+    const { password, token } = req.body
+    if (!token) return res.status(400).json({ error: 'Token is required' })
+    if (!password) return res.status(400).json({ error: 'Password is required!' })
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_COOKIE_SECRET)
+        const user = await userModel.findById(decodedToken.id)
+        if (!user) return res.status(404).json({ error: 'User not found' })
+
+
+        user.password = password
+        await user.save()
+
+        res.status(200).json({ message: 'Password changed successfully, use it to login' })
+    } catch (error) {
+        res.status(401).json({ error: 'Invalid or expired Link!' })
+    }
+}
