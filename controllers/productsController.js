@@ -58,7 +58,7 @@ const upload = multer({ storage });
 // get all products
 module.exports.allProductsGet = async (req, res) => {
   try {
-    const products = await Product.find()
+    const products = await Product.find({quantity: { $gt: 0 }})
     res.status(200).json(products)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -103,7 +103,7 @@ module.exports.toggleFeaturedGet = async (req, res) => {
 // get featured products
 module.exports.featuredProductsGet = async (req, res) => {
   try {
-    const products = await Product.find({ isFeatured: true })
+    const products = await Product.find({ isFeatured: true, quantity: { $gt: 0 } })
     res.status(200).json(products)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -114,7 +114,7 @@ module.exports.featuredProductsGet = async (req, res) => {
 
 module.exports.allOffersGet = async (req, res) => {
   try {
-    const allOffers = await Offer.find()
+    const allOffers = await Offer.find({ endDate: { $gt: new Date() } })
     res.status(200).json(allOffers)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -129,7 +129,7 @@ module.exports.offerGet = async (req, res) => {
     if (!id) {
       return res.status(400).json({ error: "please include the product id!" })
     }
-    const offer = await offers.findById({ _id: id })
+    const offer = await Offer.findById({ _id: id })
     if (!offer) {
       return res.status(404).json({ error: 'the offer was not found!' })
     }
@@ -269,6 +269,7 @@ module.exports.checkOutPost = async (req, res) => {
       totalAmount += product.price * item.quantity;
       orderItems.push({
         product: product._id,
+        name: product.name,
         quantity: item.quantity,
         price: product.price
       });
@@ -293,6 +294,9 @@ module.exports.checkOutPost = async (req, res) => {
     });
 
     await order.save();
+
+    user.orderHistory.push(order._id)
+    await user.save()
     // Email to user
     const userMessage = `
     <h2>Order Confirmation</h2>

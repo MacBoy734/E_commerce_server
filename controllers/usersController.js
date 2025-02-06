@@ -32,6 +32,27 @@ module.exports.usersGet = async (req, res) => {
     }
 }
 
+// GET USER ORDERS
+module.exports.userOrdersGet = async (req, res) => {
+    try{
+        const {id} = req.params
+        console.log(id)
+        if(!id){
+            return res.status(400).json({error: 'please include the id!'})
+        }
+        const user = await userModel.findById(id)
+        if(!user){
+            return res.status(404).json({error: 'the user was not found'})
+        }else{
+            userOrders = await userModel.findById(user._id).select('orderHistory').populate({path: 'orderHistory', select: '-updatedAt -user -shippingAddress -email -city -postalCode'})
+            console.log(userOrders)
+            res.status(200).json(userOrders)
+        }
+    }catch(err){
+        res.status(500).json({error: err.message})
+    }
+}
+
 // CHANGE USERS ROLE
 module.exports.changeRoleGet = async (req, res) => {
     try{
