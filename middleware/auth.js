@@ -13,7 +13,7 @@ module.exports.authenticateUser = (req, res, next) => {
         }
       })
     }else{ 
-        res.status(401).json({error: 'login a fresh to view this resource!'})
+        res.status(403).json({error: 'login a fresh to view this resource!'})
     }
 }
 
