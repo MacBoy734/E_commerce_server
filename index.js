@@ -2,11 +2,22 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
+const rateLimit = require('express-rate-limit')
 require('dotenv').config()
 
 const app = express()
 const events = require('events');
 events.EventEmitter.defaultMaxListeners = 20; 
+
+//RATE LIMITING MIDDLEWARE
+const limiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 150, 
+    message: 'Too many requests from this IP, please try again after 10 minutes',
+    statusCode: 429, 
+  });
+
+app.use(limiter)
 
 mongoose.connect(process.env.MONGO_DB_URI).then(() => console.log('connected to database...')).catch(error => console.error(error.message))
 app.use(cookieParser())

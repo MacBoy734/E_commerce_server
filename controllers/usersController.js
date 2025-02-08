@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken')
 const userModel = require('../models/userModel')
 const nodemailer = require('nodemailer')
 const { body, validationResult } = require('express-validator')
+const Newsletter = require('../models/newsletter')
+const newsletter = require('../models/newsletter')
 
 
 // CREATE TOKEN FUNCTION
@@ -148,7 +150,7 @@ module.exports.forgotPasswordPost = async(req, res) => {
         const user = await userModel.findOne({ email })
         if (!user) return res.status(404).json({ error: 'this email is not registered!' })
         const token = jwt.sign({ id: user._id }, process.env.JWT_COOKIE_SECRET, { expiresIn: '10m' })
-        const resetUrl = `https://macboystore.netlify.app/resetpassword?token=${token}`
+        const resetUrl = `https://macboystore.netlify.app/auth/resetpassword?token=${token}`
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 587,
@@ -169,7 +171,7 @@ module.exports.forgotPasswordPost = async(req, res) => {
             html: `
             <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
                 <h2 style="color: #0275d8; text-align: center;">Reset Your Password</h2>
-                <p>Hello,</p>
+                <p>Hello ${user.username},</p>
                 <p>Hey am so sorry that you lost your password. Click the button below to reset your password. <strong>This link will expire in 10 minutes.</strong></p>
                 <div style="text-align: center; margin: 20px 0;">
                     <a href="${resetUrl}" style="background-color: #0275d8; color: #fff; padding: 10px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">
@@ -225,4 +227,20 @@ module.exports.resetPasswordPost = async (req, res) => {
     } catch (error) {
         res.status(401).json({ error: 'Invalid or expired Link!' })
     }
+}
+
+module.exports.newsletterPost = async(req, res) => {
+    try {
+        const { email } = req.body
+        if(!email)return res.status(400).json({error: 'Email is required'})
+    
+        const exists = await Newsletter.findOne({ email })
+        if (exists) return res.status(400).json({ error: "You're already subscribed!" })
+    
+        await Newsletter.create({ email })
+    
+        return res.status(200).json({ message: "Subscribed successfully!" })
+      } catch (err) {
+        return res.status(500).json({ error: err.message})
+      }
 }
