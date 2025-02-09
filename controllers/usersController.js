@@ -129,6 +129,70 @@ module.exports.registerPost = [
                 return res.status(409).json({ error: 'the email is already registered!' })
             }
             const user = await newUser.save()
+            
+            // send email to the user
+            const transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL_USERNAME,
+                    pass: process.env.EMAIL_PASS,
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            })
+            const mailOptions = {
+                from: `"Mac Boy" <${process.env.EMAIL_USERNAME}>`,
+                to: email,
+                subject: `Welcome To Our Store!`,
+                html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
+  <div style="background: #ff6600; padding: 20px; text-align: center; color: white;">
+    <h1 style="margin: 0;">Welcome to <strong>Mac Boy Store</strong>! 🎉</h1>
+  </div>
+
+  <div style="padding: 20px; color: #333;">
+    <p style="font-size: 18px;">Hey <strong>${user.username}</strong>,</p>
+    
+    <p style="font-size: 16px;">
+      You just joined the best place to find amazing deals and top-notch products! 🚀  
+      We're thrilled to have you, and to kick things off, here's a **special welcome discount** just for you!
+    </p>
+
+    <p style="text-align: center;">
+      <a href="https://macboystore.netlify.app/products" style="background: #ff6600; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-size: 18px; display: inline-block; font-weight: bold;">
+        Start Shopping 🛒
+      </a>
+    </p>
+
+    <p style="font-size: 16px;">
+      Got questions? Our support team is here 24/7 to assist you.  
+      Simply reply to this email or visit our <a href="https://macboystore.netlify.app/help/contactsupport" style="color: #ff6600; text-decoration: none;">Help Center</a>.
+    </p>
+
+    <p style="text-align: center; font-size: 14px; color: gray;">
+      Happy Shopping! ❤️<br>
+      <strong>Mac Boy Store Team</strong>
+    </p>
+  </div>
+
+  <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: gray;">
+    You received this email because you signed up on <strong>Mac Boy Store</strong>.  
+    If this wasn’t you, please <a href="#" style="color: #ff6600; text-decoration: none;">unsubscribe here</a>.
+  </div>
+</div>
+`
+
+            }
+
+            
+            transporter.sendMail(mailOptions, (error, Info) => {
+                if (error) {
+                    console.log(error.message)
+                    return res.status(500).json({ error: 'There was an error sending the reset email' })
+                }
+            })
             let token = createtoken(user._id, user.username, user.isAdmin)
             res.cookie('jwt', token, {
                 path: '/',
@@ -253,7 +317,7 @@ module.exports.sendNewsletterPost = async (req, res) => {
     try {
         const users = await newsletter.find().select('email -_id');
         console.log(users)
-        if(users.length > 0){
+        if (users.length > 0) {
             const transporter = nodemailer.createTransport({
                 host: "smtp.gmail.com",
                 port: 587,
@@ -274,13 +338,13 @@ module.exports.sendNewsletterPost = async (req, res) => {
                         subject,
                         text: body,
                     };
-    
+
                     await transporter.sendMail(mailOptions);
                 })
             );
             res.status(200).json({ message: "Newsletter sent successfully!" });
-        }else{
-            return res.status(400).json({error: 'there is no enough users!'})
+        } else {
+            return res.status(400).json({ error: 'there is no enough users!' })
         }
     } catch (error) {
         res.status(500).json({ error: "Failed to send the newsletter." });
