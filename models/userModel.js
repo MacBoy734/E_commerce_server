@@ -55,4 +55,4 @@ userSchema.statics.login = async function (username, password){
   throw Error('user not registered yet!')
 }
 
-module.exports = mongoose.model('users', userSchema)
+module.exports = mongoose.model('User', userSchema)

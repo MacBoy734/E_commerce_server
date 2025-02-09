@@ -1,6 +1,6 @@
 const express = require('express')
 const {authenticateUser, checkIfIsAdmin} = require('../middleware/auth')
-const { addProductsPost, featuredProductsGet, allProductsGet, productGet, allOffersGet, OfferGet, addOfferPost, offerGet, editOfferPatch, editProductPatch, deleteOfferDelete, deleteProductDelete, toggleFeaturedGet, searchProductsGet, checkOutPost, allOrdersGet } = require('../controllers/productsController')
+const { addProductsPost, featuredProductsGet, allProductsGet, productGet, allOffersGet, OfferGet, addOfferPost, offerGet, editOfferPatch, editProductPatch, deleteOfferDelete, deleteProductDelete, toggleFeaturedGet, searchProductsGet, checkOutPost, allOrdersGet, editOrderPatch, deleteOrderDelete } = require('../controllers/productsController')
 
 const router = express.Router()
 
@@ -23,9 +23,11 @@ router.post('/checkout', authenticateUser, checkOutPost)
 // PUT/PATCH ROUTES
 router.patch('/editproduct/:id', authenticateUser, checkIfIsAdmin, editProductPatch)
 router.patch('/editoffer/:id', authenticateUser, checkIfIsAdmin, editOfferPatch)
+router.patch('/editorder/:id', authenticateUser, checkIfIsAdmin, editOrderPatch)
 
 // DELETE ROUTES
 router.delete('/deleteoffer/:id', authenticateUser, checkIfIsAdmin, deleteOfferDelete)
+router.delete('/deleteorder/:id', authenticateUser, checkIfIsAdmin, deleteOrderDelete)
 router.delete('/deleteproduct/:id', authenticateUser, checkIfIsAdmin, deleteProductDelete)
 
 module.exports = router

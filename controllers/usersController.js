@@ -26,52 +26,52 @@ module.exports.logoutGet = (req, res) => {
 
 // GET ALL USERS ROUTE
 module.exports.usersGet = async (req, res) => {
-    try{
+    try {
         const users = await userModel.find({}, { password: 0 })
         res.status(200).json(users)
-    }catch(err){
-        res.status(500).json({error: err.message})
+    } catch (err) {
+        res.status(500).json({ error: err.message })
     }
 }
 
 // GET USER ORDERS
 module.exports.userOrdersGet = async (req, res) => {
-    try{
-        const {id} = req.params
+    try {
+        const { id } = req.params
         console.log(id)
-        if(!id){
-            return res.status(400).json({error: 'please include the id!'})
+        if (!id) {
+            return res.status(400).json({ error: 'please include the id!' })
         }
         const user = await userModel.findById(id)
-        if(!user){
-            return res.status(404).json({error: 'the user was not found'})
-        }else{
-            userOrders = await userModel.findById(user._id).select('orderHistory').populate({path: 'orderHistory', select: '-updatedAt -user -shippingAddress -email -city -postalCode'})
+        if (!user) {
+            return res.status(404).json({ error: 'the user was not found' })
+        } else {
+            userOrders = await userModel.findById(user._id).select('orderHistory').populate({ path: 'orderHistory', select: '-updatedAt -user -shippingAddress -email -city -postalCode' })
             console.log(userOrders)
             res.status(200).json(userOrders)
         }
-    }catch(err){
-        res.status(500).json({error: err.message})
+    } catch (err) {
+        res.status(500).json({ error: err.message })
     }
 }
 
 // CHANGE USERS ROLE
 module.exports.changeRoleGet = async (req, res) => {
-    try{
-      const {id} = req.params
-      if(!id){
-        return res.status(400).json({error: 'missing or invalid id'})
-      }
-      const user = await userModel.findOne({ _id: id })
-      if(!user || user === null){
-        return res.status(404).json({error: 'the user cannot be found'})
-      }else{
-        await userModel.updateOne({ _id: user._id }, { $set: { isAdmin: !user.isAdmin} })
-      }
+    try {
+        const { id } = req.params
+        if (!id) {
+            return res.status(400).json({ error: 'missing or invalid id' })
+        }
+        const user = await userModel.findOne({ _id: id })
+        if (!user || user === null) {
+            return res.status(404).json({ error: 'the user cannot be found' })
+        } else {
+            await userModel.updateOne({ _id: user._id }, { $set: { isAdmin: !user.isAdmin } })
+        }
 
-      res.status(200).json(user)
-    }catch(err){
-        res.status(500).json({error: err.message})
+        res.status(200).json(user)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
     }
 }
 
@@ -79,72 +79,72 @@ module.exports.changeRoleGet = async (req, res) => {
 module.exports.loginPost = [
     body('username').trim().escape(),
     body('password').trim().escape()
-, async (req, res) => {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() })
-    }
-    try {
-        let { username, password } = req.body
-        user = await userModel.login(username, password)
-        let token = createtoken(user._id, user.username, user.isAdmin)
-        res.cookie('jwt', token, {
-            maxAge: 3600000 * 120,
-            httpOnly: true,
-            sameSite: "none",
-            secure: process.env.IS_PRODUCTION,
-            path: '/'
-        })
-        if (user) res.status(200).json(user)
-    } catch (err) {
-        res.status(401).json({ error: err.message })
-    }
-}]
+    , async (req, res) => {
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
+        }
+        try {
+            let { username, password } = req.body
+            user = await userModel.login(username, password)
+            let token = createtoken(user._id, user.username, user.isAdmin)
+            res.cookie('jwt', token, {
+                maxAge: 3600000 * 120,
+                httpOnly: true,
+                sameSite: "none",
+                secure: process.env.IS_PRODUCTION,
+                path: '/'
+            })
+            if (user) res.status(200).json(user)
+        } catch (err) {
+            res.status(401).json({ error: err.message })
+        }
+    }]
 
 module.exports.registerPost = [
     body('username').trim().escape(),
     body('password').trim().escape(),
     body('phone').trim().escape(),
     body('email').isEmail().normalizeEmail()
-, async (req, res) => {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() })
-    }
-    const { username, password, email, phone} = req.body
-    if(!username || !password ||!email || !phone)return res.status(400).json({error: "please enter all the details!"})
-    const newUser = new userModel({
-        username,
-        password,
-        email,
-        phone
-    })
-    try {
-        const userExists = await userModel.findOne({ username })
-        const emailExists = await userModel.findOne({ email })
-        if (userExists !== null) {
-            return res.status(409).json({ error: 'the username is already taken!' })
+    , async (req, res) => {
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
         }
-        if (emailExists !== null) {
-            return res.status(409).json({ error: 'the email is already registered!' })
-        }
-        const user = await newUser.save()
-        let token = createtoken(user._id, user.username, user.isAdmin)
-        res.cookie('jwt', token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: "none",
-            secure: process.env.IS_PRODUCTION,
-            maxAge: 3600000 * 120
+        const { username, password, email, phone } = req.body
+        if (!username || !password || !email || !phone) return res.status(400).json({ error: "please enter all the details!" })
+        const newUser = new userModel({
+            username,
+            password,
+            email,
+            phone
         })
-        if (user) res.status(201).json(user)
-    } catch (error) {
-        res.status(500).json({ error: error.message })
-    }
+        try {
+            const userExists = await userModel.findOne({ username })
+            const emailExists = await userModel.findOne({ email })
+            if (userExists !== null) {
+                return res.status(409).json({ error: 'the username is already taken!' })
+            }
+            if (emailExists !== null) {
+                return res.status(409).json({ error: 'the email is already registered!' })
+            }
+            const user = await newUser.save()
+            let token = createtoken(user._id, user.username, user.isAdmin)
+            res.cookie('jwt', token, {
+                path: '/',
+                httpOnly: true,
+                sameSite: "none",
+                secure: process.env.IS_PRODUCTION,
+                maxAge: 3600000 * 120
+            })
+            if (user) res.status(201).json(user)
+        } catch (error) {
+            res.status(500).json({ error: error.message })
+        }
 
-}]
+    }]
 
-module.exports.forgotPasswordPost = async(req, res) => {
+module.exports.forgotPasswordPost = async (req, res) => {
     const email = req.body.email
     try {
         const user = await userModel.findOne({ email })
@@ -229,18 +229,60 @@ module.exports.resetPasswordPost = async (req, res) => {
     }
 }
 
-module.exports.newsletterPost = async(req, res) => {
+module.exports.newsletterPost = async (req, res) => {
     try {
         const { email } = req.body
-        if(!email)return res.status(400).json({error: 'Email is required'})
-    
+        if (!email) return res.status(400).json({ error: 'Email is required' })
+
         const exists = await Newsletter.findOne({ email })
         if (exists) return res.status(400).json({ error: "You're already subscribed!" })
-    
+
         await Newsletter.create({ email })
-    
+
         return res.status(200).json({ message: "Subscribed successfully!" })
-      } catch (err) {
-        return res.status(500).json({ error: err.message})
-      }
+    } catch (err) {
+        return res.status(500).json({ error: err.message })
+    }
+}
+module.exports.sendNewsletterPost = async (req, res) => {
+    const { subject, body } = req.body;
+
+    if (!subject || !body) {
+        return res.status(400).json({ error: "please enter all details" })
+    }
+    try {
+        const users = await newsletter.find().select('email -_id');
+        console.log(users)
+        if(users.length > 0){
+            const transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL_USERNAME,
+                    pass: process.env.EMAIL_PASS,
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+            await Promise.all(
+                users.map(async (user) => {
+                    const mailOptions = {
+                        from: `"Mac Boy" <${process.env.EMAIL_USERNAME}>`,
+                        to: user.email,
+                        subject,
+                        text: body,
+                    };
+    
+                    await transporter.sendMail(mailOptions);
+                })
+            );
+            res.status(200).json({ message: "Newsletter sent successfully!" });
+        }else{
+            return res.status(400).json({error: 'there is no enough users!'})
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Failed to send the newsletter." });
+    }
 }

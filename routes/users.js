@@ -1,5 +1,5 @@
 const express = require('express')
-const { loginPost, registerPost, logoutGet, usersGet, changeRoleGet, forgotPasswordPost, resetPasswordPost, userOrdersGet, newsletterPost } = require('../controllers/usersController')
+const { loginPost, registerPost, logoutGet, usersGet, changeRoleGet, forgotPasswordPost, resetPasswordPost, userOrdersGet, newsletterPost, sendNewsletterPost } = require('../controllers/usersController')
 const {authenticateUser, checkIfIsAdmin} = require('../middleware/auth')
 const router = express.Router()
 
@@ -12,5 +12,6 @@ router.post('/login', loginPost)
 router.post('/register', registerPost)
 router.post('/forgotpassword', forgotPasswordPost)
 router.post('/newsletter', newsletterPost)
+router.post('/sendnewsletter', authenticateUser, checkIfIsAdmin, sendNewsletterPost)
 router.post('/resetpassword', resetPasswordPost)
 module.exports = router

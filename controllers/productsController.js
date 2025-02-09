@@ -58,7 +58,7 @@ const upload = multer({ storage });
 // get all products
 module.exports.allProductsGet = async (req, res) => {
   try {
-    const products = await Product.find({quantity: { $gt: 0 }})
+    const products = await Product.find({quantity: { $gt: 0 }}).populate({path: 'offers', select: 'title, discountPercentage'})
     res.status(200).json(products)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -114,7 +114,7 @@ module.exports.featuredProductsGet = async (req, res) => {
 
 module.exports.allOffersGet = async (req, res) => {
   try {
-    const allOffers = await Offer.find({ endDate: { $gt: new Date() } })
+    const allOffers = await Offer.find({ endDate: { $gt: new Date() } }).populate({path: 'applicableProducts', select: 'name'})
     res.status(200).json(allOffers)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -164,7 +164,7 @@ module.exports.searchProductsGet = async (req, res) => {
 
 module.exports.allOrdersGet = async (req, res) => {
   try {
-    const allOrders = await Order.find()
+    const allOrders = await Order.find().populate({path: 'user', select: 'username'})
     res.status(200).json(allOrders)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -345,6 +345,20 @@ module.exports.editOfferPatch = async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 }
+module.exports.editOrderPatch = async (req, res) => {
+  try {
+    const item = await Order.findById(req.params.id)
+    if (!item || item === null) {
+      res.status(404).json({ error: 'the order was not found' })
+    } else {
+      const { paymentStatus, orderStatus} = req.body
+      const updatedOrder = await Order.findByIdAndUpdate(item._id, { $set: { orderStatus, paymentStatus } }, { new: true })
+      res.status(200).json(updatedOrder)
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
 module.exports.editProductPatch = async (req, res) => {
   try {
     const item = await Product.findById(req.params.id)
@@ -387,9 +401,22 @@ module.exports.deleteOfferDelete = async (req, res) => {
     const item = await Offer.findById(req.params.id)
     if (item !== null) {
       await Offer.findByIdAndDelete({ _id: item._id })
-      res.status(204).json({ message: 'Product deleted succesfully!' })
+      res.status(204).json({ message: 'offer deleted succesfully!' })
     } else {
       res.status(404).json({ error: 'oops the Offer was not found!' })
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+module.exports.deleteOrderDelete = async (req, res) => {
+  try {
+    const item = await Order.findById(req.params.id)
+    if (item !== null) {
+      await Order.findByIdAndDelete(item._id)
+      res.status(204).json({ message: 'order deleted succesfully!' })
+    } else {
+      res.status(404).json({ error: 'oops the order was not found!' })
     }
   } catch (error) {
     res.status(500).json({ error: error.message })
