@@ -1,2 +1,4 @@
 .env
 migrate.js
+rename.js
+stk.js

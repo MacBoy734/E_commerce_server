@@ -248,7 +248,7 @@ module.exports.addOfferPost = async (req, res) => {
 // checkout route
 
 module.exports.checkOutPost = async (req, res) => {
-  const { userId, items, address, postalCode, city, email, paymentMethod } = req.body;
+  const { userId, items, address, postalCode, city, email, paymentMethod, phone } = req.body;
   try {
     const user = await User.findById(userId);
     if (!user) {

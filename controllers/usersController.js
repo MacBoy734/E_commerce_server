@@ -3,7 +3,6 @@ const userModel = require('../models/userModel')
 const nodemailer = require('nodemailer')
 const { body, validationResult } = require('express-validator')
 const Newsletter = require('../models/newsletter')
-const newsletter = require('../models/newsletter')
 
 
 // CREATE TOKEN FUNCTION
