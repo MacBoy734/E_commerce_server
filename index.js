@@ -36,7 +36,7 @@ app.use(cors({
 
 const PING_URL = 'https://e-commerce-server-mrow.onrender.com'
 
-if (process.env.IS_PRODUCTION === true) {
+if (process.env.IS_PRODUCTION === 'true') {
     cron.schedule('*/14 * * * *', () => {
         https.get(PING_URL, (res) => {
             console.log(`pinged server: ${res.statusCode}`);
